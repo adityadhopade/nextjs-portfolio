@@ -1,0 +1,177 @@
+---
+title: Mastering K8s Event Driven AutoScaling
+date: '2024-08-27'
+tags: ['kubernetes', 'devops',  'autoscaling', 'event-driven']
+draft: false
+summary: Event Driven Autoscaling
+---
+
+
+## Chapter 1: Introduction to Autoscaling
+
+**Autoscaling:**
+
+- Autoscaling refers to the dynamic allocation of resources to a service or application based on current needs.
+- It is a service that autoscales & down depending on the demand **without the manual intervention.**
+- Its damn essential in the modern cloud where workload demands are unpredictable & can change rapidly.
+
+Why to go for Autoscaling?
+
+- 1. System Admins would need to manually scale or descale the resources according to the dynamic demands which in the case of the large scale deployments is not feasible.
+- 2. Even if they get successful that would not last a while due to varying demands; which may lead to `over-provisioning` of the resources leading to the resource wastage OR `under-provisioning` of the resources leading to the Performance Bottlenecks.
+
+Challenge here is to maintain both to set appropriate amount of resources, provides the cost-effectiveness and robustness.
+
+**Autoscaling in context to K8s:**
+
+Service that Adjusts number of running Pods in a Deployment based on the current demand; Crucial for maintaining optimal performance & efficient resource utilization.
+
+The scaling can be identified in
+1. Manual Scaling
+2. Automated Scaling
+
+***Manual Scaling & its Challenges:***
+There needs a manual intervention in adjusting the number of replicas in the deployment to meet as per the application demands.
+
+***Challenges***
+Leading to impracticality & wastage of resources by
+- Under OR Over Utilization of resources.
+- Manual effort to monitor & Adjust the resources leading to inefficiency in case of Heavy Workloads.
+
+**Automated Scaling:**
+- Kubernetes introduced the more systematic and efficient scaling in-terms of the Horizontal Pod Autoscaling(HPA) and Vertical Pod Autoscaling(VPA).
+- They are intelligently designed to allocate the resources based on the real-time demand of the application, significantly reducing the manual overhead & enhancing system responsiveness.
+
+**Horizontal Pod Autoscaling:**
+- HPA is a key feature in the K8s it is used to dynamically adjust the number of Pods i.e. it Scales Out and Descales in response to the varying demands of the Application.
+
+- When there is a high demand HPA increases the number of Pod replicas to distribute the workload more effectively.
+
+- In the times of low demand it reduces the number of replicas to conserve the resources.
+
+- We can trigger the scale-out and scale-down on the basis of the threshold based metrics of the CPU Utilization, Memory Utilization or a Custom metrics.
+
+- We can trigger the scale-out and scale-down on the basis of the threshold based metrics of the CPU Utilization, Memory Utilization or a custom metrics.
+
+<Image alt="HPA Visualisation" src="/static/images/hpa-visualisation.jpg" width={1000} height={1000} />
+
+
+**Vertical Pod Autoscaling:**
+- Being one of the key feature in K8s it is used to optimize the CPU and Memory i.e. Scaling Up of the Pod itself.
+- Using the VPA the Pod Count remains the same as opposed to HPA the Pod count increases or decreases according to the load it serves and threshold setted.
+- VPA actually determines the current demand of Pods and adjust its CPU, Memory limits and requests accordingly.
+- This is actually useful in the case where the resources needed to be increased but not in the terms of instance count.
+- This approach allows for a more nuanced scaling strategy, targeting resource intensity of application.
+
+<Image alt="HPA Visualisation" src="/static/images/vpa.jpg" width={1000} height={1000} />
+
+
+```bash
+digraph G {
+  rankdir = "RL";
+  node [shape = rect, fontname = "sans-serif"];
+  "data.aws_iam_policy_document.sns_topic_policy" [label="data.aws_iam_policy_document.sns_topic_policy"];
+  "aws_cloudwatch_event_rule.console" [label="aws_cloudwatch_event_rule.console"];
+  "aws_cloudwatch_event_target.sns" [label="aws_cloudwatch_event_target.sns"];
+  "aws_sns_topic.aws_activity" [label="aws_sns_topic.aws_activity"];
+  "aws_sns_topic_policy.default" [label="aws_sns_topic_policy.default"];
+  "aws_sns_topic_subscription.email-target" [label="aws_sns_topic_subscription.email-target"];
+  "data.aws_iam_policy_document.sns_topic_policy" -> "aws_sns_topic.aws_activity";
+  "aws_cloudwatch_event_target.sns" -> "aws_cloudwatch_event_rule.console";
+  "aws_cloudwatch_event_target.sns" -> "aws_sns_topic.aws_activity";
+  "aws_sns_topic_policy.default" -> "data.aws_iam_policy_document.sns_topic_policy";
+  "aws_sns_topic_subscription.email-target" -> "aws_sns_topic.aws_activity";
+}
+```
+
+The Output of the graph is not directly visualized though we need to use a utility named **“Graphviz”** (Converts the Dot Format Output to the Image format)
+
+```bash
+#Installation
+
+sudo apt-get install graphviz
+
+# Save the graph
+terraform graph > graph.dot
+
+
+#Convert dot file to image file
+dot -Tpng graph.dot -o graph.png
+```
+Graph can also be visualized using the following websites
+
+```bash
+http://www.webgraphviz.com/?tab=map
+
+http://www.jdolivet.byethost13.com/Logiciels/WebGraphviz/
+```
+
+Enough with jibber-jabber ; Lets hop onto the Demo !
+---
+### DEMO Showcasing TF Graphs using AWS
+Clone the Repository: **[MUST TO PERFORM DEMO]**
+
+```bash
+https://github.com/adityadhopade/aws_terraform_scripts.git
+```
+
+This Terraform script enables us to perform the monitoring on the EC2 as well as the S3 Bucket if any changes are done to the file then the mail gets shot to the desired mail ID
+
+Further add the credentials of AWS using Environment Variables
+
+```bash
+export AWS_ACCESS_KEY= <YOUR-ACCESS-KEY>
+export AWS_SECRET_KEY= <YOUR-SECRET-KEY>
+```
+Or can create a **variable.tf** file with the following content
+```bash
+variable "access_key" {
+  default     = "YOUR KEY"
+  type        = string
+  description = "The accesskye of the user"
+}
+variable "secret_key" {
+  default     = "YOUR KEY"
+  type        = string
+  description = "The secret key of the user"
+}
+```
+Then further try to run the Infrastructure Code in AWS using the set of commands
+
+```bash
+terraform init
+terraform validate
+terraform plan
+tearraform apply --auto-approve
+```
+
+Checkout the Infrastructure on the AWS Console; Now to get the graph run the commands
+
+```bash
+terraform graph
+```
+
+It will show the output the format as below
+
+```bash
+digraph G {
+  rankdir = "RL";
+  node [shape = rect, fontname = "sans-serif"];
+  "data.aws_iam_policy_document.sns_topic_policy" [label="data.aws_iam_policy_document.sns_topic_policy"];
+  "aws_cloudwatch_event_rule.console" [label="aws_cloudwatch_event_rule.console"];
+  "aws_cloudwatch_event_target.sns" [label="aws_cloudwatch_event_target.sns"];
+  "aws_sns_topic.aws_activity" [label="aws_sns_topic.aws_activity"];
+  "aws_sns_topic_policy.default" [label="aws_sns_topic_policy.default"];
+  "aws_sns_topic_subscription.email-target" [label="aws_sns_topic_subscription.email-target"];
+  "data.aws_iam_policy_document.sns_topic_policy" -> "aws_sns_topic.aws_activity";
+  "aws_cloudwatch_event_target.sns" -> "aws_cloudwatch_event_rule.console";
+  "aws_cloudwatch_event_target.sns" -> "aws_sns_topic.aws_activity";
+  "aws_sns_topic_policy.default" -> "data.aws_iam_policy_document.sns_topic_policy";
+  "aws_sns_topic_subscription.email-target" -> "aws_sns_topic.aws_activity";
+}
+```
+
+Further can be represented in Image format either using the Graphviz. For Simplifying I am using the link provided above to generate the graph.
+
+### Conclusion
+By leveraging the insights from Terraform graphs, we can better understand and manage your infrastructure as code, ensuring a more robust and efficient deployment process.

@@ -1,0 +1,90 @@
+---
+title: Mastering K8s Event Driven AutoScaling Part [3]
+date: '2024-08-29'
+tags: ['kubernetes', 'devops',  'autoscaling', 'event-driven']
+draft: false
+summary: Event Driven Autoscaling
+---
+
+
+## Chapter 3:  Introspecting HPA
+
+### WTH is HPA?
+
+- It is integral native object and widely used feature in the K8s, available as part of every major distribution of K8s.
+- HPA simplifies the task of managing the number of Pod Replicas in `Deployment, Replicaset, Stateful Sets`.
+- It automatically functions by scaling the replicas in response to some observed metrics.
+- HPA operates by monitoring the specified metrics and comparing them against the predefined thresholds.
+
+```bash
+Metrics exceeds threshold then it Scales-OUT α Increase Pod Replicas
+
+Metrics goes below threshold then it Scales-DOWN α Decrease Pod Replicas
+
+NOTE: This Increasing the Count and Decreasing the Pods Replicas are set using the minReplicas and maxReplicas.
+```
+Such dynamic adjustment ensures that application has sufficient resources when it needs them without over-provisioning.
+
+**NOTE:** Before moving with the HPA that we need to install the Kube Metrics Server it is the native K8s object which is present on all the distributions of K8s `but just not installed.`
+
+#### HPA Workflow:
+<Image alt="HPA Visualisation" src="/static/images/hpa-workflow.jpg" width={1000} height={1000} />
+- HPA periodically receives the metrics where metrics acts as major data-point stating the current vs desired state acquired by the app.
+- Desired Replicas could be gotten from the formula below ; ciel (mathematical context) is used to get the whole number.
+- Once the Desired Replicas are calculated HPA can adjust the replica count where the maximum ceiling it can go is the `maxReplicas` set and lowest to the `minReplicas`.
+- After the `Scaling Out / Scaling Down` there is some `cool-down` period (which is configurable) to help stabilizing the scaling process, preventing rapid replication in replica count.
+
+### Metrics Types in HPA
+<Image alt="HPA Visualisation" src="/static/images/types-metrics-2.jpg" width={1000} height={1000} />
+
+- **A> Resource Metrics:** Fundamental to K8s Autoscaling included the `CPU and Memory metrics`; `this can suffice our basic scaling needs`.
+
+- **B> Custom Metrics:** More Granular /Tailored Approach to scaling; these metrics are derived from external sources and custom monitoring solution
+eg. > Queue Length or Transaction Rate can be pivotal for apps where factors are critical performance indicators.
+
+Custom Metrics allow HPA to respond to specific needs of an application, scaling resources in accordance with bespoke parameters.
+
+- **C> External Metrics:** It provides a mean to incorporate data from third-party monitoring services into K8s scaling Decision Process.
+
+This type of metrics is particularly useful for scaling decision based on factors that are external to K8s.
+
+- **D> Object Metrics:** These metrics are directly linked to K8s object such as “services” or “ingress”. This metrics can include data-points like number of request per second received by service.
+Object Metrics are essential for scaling decision that needs to be aligned with the performance of particular of particular K8s Object providing a focused view of how these objects are handy workloads.
+
+#### Choosing Right Metrics:
+- Its not only about defining the “target metrics” and “thresholds” there are multiple operational parameters that influences HPAs behavior.
+- Such kind of setup is actually essential to ensure that HPA responds to the real-time needs of application, thereby maintaining optimal performance and resource utilization.
+- Sync Period Configuration: This is a flag which is actually used to set at whihc the HPA actually fetches the metrics
+
+```bash
+--horizontal-pod-autoscaler-sync-period 
+# Default is set to 15 seconds (customizable)
+```
+
+#### HPA usage
+```bash
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: example-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: example-deployment
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
+```
+
+#### Best Practices in HPA
+<Image alt="HPA Visualisation" src="/static/images/hpa-explain.jpg" width={1000} height={1000} />
+- Timely Update the HPA Configuration as per application needs, as the workloads, performance demands changes overtime.
+- Have only 1 HPA targeting specific resource ore Deployment; using multiple may lead to the conflict as HPA may attempt to scale resource based on different criteria resulting in erratic scaling behavior.
+- If there need to be consideration of multiple metrics for scaling decision they should be embodied into one HPA Configuration.

@@ -1,0 +1,138 @@
+---
+title: WTH is terraform graphs?!
+date: '2024-07-22'
+tags: ['terraform', 'graphs', 'visualization']
+draft: false
+summary: Highlighting the use of terraform graphs
+---
+
+## Terraform Graphs
+
+They are used to generate a visual dependency of relationships between resources in the TF Configuration or Execution Plan.
+
+While the dependencies are further distinguished as the `Implicit Dependency` (TF takes care of this) and `Explicit Dependency` (Need to Explicitly provide with the help of **“depends_on”**)
+
+They are rather useful to detect the Potential Issues, Planning Changes and debugging.
+
+Each Node in the Graph is represented as **“Resource”** while the `arrow connected to other Node` is represented as **“Dependencies”** .
+
+The graph does NOT creates or applies any Infra changes; it’s purely for Visualization. For large or complex graphs, breaking them down into smaller sections or using interactive visualizations (see later section on other available tools) can improve readability.
+
+Graphs can be used to find the isolated (orphan resource) that might be the result of some mis-configuration or if its unused.
+
+Here is an example output of Terraform Plan
+
+
+## Code Blocks
+
+
+
+```bash
+digraph G {
+  rankdir = "RL";
+  node [shape = rect, fontname = "sans-serif"];
+  "data.aws_iam_policy_document.sns_topic_policy" [label="data.aws_iam_policy_document.sns_topic_policy"];
+  "aws_cloudwatch_event_rule.console" [label="aws_cloudwatch_event_rule.console"];
+  "aws_cloudwatch_event_target.sns" [label="aws_cloudwatch_event_target.sns"];
+  "aws_sns_topic.aws_activity" [label="aws_sns_topic.aws_activity"];
+  "aws_sns_topic_policy.default" [label="aws_sns_topic_policy.default"];
+  "aws_sns_topic_subscription.email-target" [label="aws_sns_topic_subscription.email-target"];
+  "data.aws_iam_policy_document.sns_topic_policy" -> "aws_sns_topic.aws_activity";
+  "aws_cloudwatch_event_target.sns" -> "aws_cloudwatch_event_rule.console";
+  "aws_cloudwatch_event_target.sns" -> "aws_sns_topic.aws_activity";
+  "aws_sns_topic_policy.default" -> "data.aws_iam_policy_document.sns_topic_policy";
+  "aws_sns_topic_subscription.email-target" -> "aws_sns_topic.aws_activity";
+}
+```
+
+The Output of the graph is not directly visualized though we need to use a utility named **“Graphviz”** (Converts the Dot Format Output to the Image format)
+
+```bash
+#Installation
+
+sudo apt-get install graphviz
+
+# Save the graph
+terraform graph > graph.dot
+
+
+#Convert dot file to image file
+dot -Tpng graph.dot -o graph.png
+```
+Graph can also be visualized using the following websites
+
+```bash
+http://www.webgraphviz.com/?tab=map
+
+http://www.jdolivet.byethost13.com/Logiciels/WebGraphviz/
+```
+
+Enough with jibber-jabber ; Lets hop onto the Demo !
+---
+### DEMO Showcasing TF Graphs using AWS
+Clone the Repository: **[MUST TO PERFORM DEMO]**
+
+```bash
+https://github.com/adityadhopade/aws_terraform_scripts.git
+```
+
+This Terraform script enables us to perform the monitoring on the EC2 as well as the S3 Bucket if any changes are done to the file then the mail gets shot to the desired mail ID
+
+Further add the credentials of AWS using Environment Variables
+
+```bash
+export AWS_ACCESS_KEY= <YOUR-ACCESS-KEY>
+export AWS_SECRET_KEY= <YOUR-SECRET-KEY>
+```
+Or can create a **variable.tf** file with the following content
+```bash
+variable "access_key" {
+  default     = "YOUR KEY"
+  type        = string
+  description = "The accesskye of the user"
+}
+variable "secret_key" {
+  default     = "YOUR KEY"
+  type        = string
+  description = "The secret key of the user"
+}
+```
+Then further try to run the Infrastructure Code in AWS using the set of commands
+
+```bash
+terraform init
+terraform validate
+terraform plan
+tearraform apply --auto-approve
+```
+
+Checkout the Infrastructure on the AWS Console; Now to get the graph run the commands
+
+```bash
+terraform graph
+```
+
+It will show the output the format as below
+
+```bash
+digraph G {
+  rankdir = "RL";
+  node [shape = rect, fontname = "sans-serif"];
+  "data.aws_iam_policy_document.sns_topic_policy" [label="data.aws_iam_policy_document.sns_topic_policy"];
+  "aws_cloudwatch_event_rule.console" [label="aws_cloudwatch_event_rule.console"];
+  "aws_cloudwatch_event_target.sns" [label="aws_cloudwatch_event_target.sns"];
+  "aws_sns_topic.aws_activity" [label="aws_sns_topic.aws_activity"];
+  "aws_sns_topic_policy.default" [label="aws_sns_topic_policy.default"];
+  "aws_sns_topic_subscription.email-target" [label="aws_sns_topic_subscription.email-target"];
+  "data.aws_iam_policy_document.sns_topic_policy" -> "aws_sns_topic.aws_activity";
+  "aws_cloudwatch_event_target.sns" -> "aws_cloudwatch_event_rule.console";
+  "aws_cloudwatch_event_target.sns" -> "aws_sns_topic.aws_activity";
+  "aws_sns_topic_policy.default" -> "data.aws_iam_policy_document.sns_topic_policy";
+  "aws_sns_topic_subscription.email-target" -> "aws_sns_topic.aws_activity";
+}
+```
+
+Further can be represented in Image format either using the Graphviz. For Simplifying I am using the link provided above to generate the graph.
+
+### Conclusion
+By leveraging the insights from Terraform graphs, we can better understand and manage your infrastructure as code, ensuring a more robust and efficient deployment process.

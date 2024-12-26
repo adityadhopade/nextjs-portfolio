@@ -1,0 +1,96 @@
+---
+title: Mastering K8s Event Driven AutoScaling Part [2]
+date: '2024-07-29'
+tags: ['kubernetes', 'devops',  'autoscaling', 'event-driven']
+draft: false
+summary: Event Driven Autoscaling
+---
+
+
+## Chapter 2: Deep Dive in Metrics
+
+### **WTH is Metrics**
+
+- Metrics are the tangible value that are pivotal for AutoScaling that actually offers the Real-time insights into resource usage of Pods and Nodes.
+- They are the essential parts in guiding the autoscaling system to make informed decision ensuring that the application actually maintains the Optimal Performance & efficient resource utilization.
+- Metrics plays an crucial role in sustaining the efficient performance in K8s, they enable autoscaling of the system to adjust the resources in real-time ensuring that applications receive the necessary resources.
+
+<Image alt="HPA Visualisation" src="/static/images/metrics.jpg" width={1000} height={1000} />
+
+### Metrics in Context to K8s
+- In K8s detailed representation of metrics is pivotal for effective autoscaling such that even a minor change in the resource usage gets captured by these metrics, also they could be acting as the key triggers for scaling actions.
+- The level of detail is actually responsible for the responsive autoscaling system that maintains a balance between the resource availability and optimal Application Performance.
+
+### Understanding the CPU and Memory Resource Conversion
+####**1. CPU Resources**:
+
+In K8s, CPU Resources are measured in `CPU Cores` and `Millicores`.
+<Image alt="HPA Visualisation" src="/static/images/cpu-cores.png" width={1000} height={1000} />
+It can be used with the K8s along with the `resource, request and limits.`
+
+```bash
+resources:
+  requests:
+    cpu: "500m"  # 0.5 CPU core
+  limits:
+    cpu: "1"     # 1 CPU core
+```
+#### **2. Memory Resources**
+In the K8s for Memory Resources we have the option to measure in the bytes to use both the `binary(base 1024)` and `decimal(base 1000) prefixes`.
+<Image alt="HPA Visualisation" src="/static/images/mem-bits.png" width={1000} height={1000} />
+
+It can be used in K8s with the `resource, request and limits`.
+
+```bash
+resources:
+  requests: # amount of CPU that container is guranteed
+    memory: "512Mi"  # 512 Mebibytes (Binary)
+  limits: # maximum amount that the container can occupy
+    memory: "1Gi"    # 1 Gibibyte (Binary)
+
+resources:
+  requests: # amount of CPU that container is guranteed
+    memory: "500M"  # 500 Megabytes (Decimal)
+  limits: # maximum amount that the container can occupy
+    memory: "1G"    # 1 Gigabyte (Decimal)
+```
+
+Configuring the autoscaling effectively hinges on a thorough understanding of the Kubernetes Metrics Units. Correctly interpreting the values like `“millicores”` and `“mebibytes”` is essential for setting appropriate threshold and limits.
+
+### Types of Metrics
+Understanding the types of metrics for usage during the autoscaling is also that essential as it aligns with need of the application.
+<Image alt="HPA Visualisation" src="/static/images/types-metrics.jpg" width={1000} height={1000} />
+
+##### `A. Value Metrics:`
+These are the specific numbers indicating the direct quantities; they are quite straightforward and provide a clear and direct measurements of a particular system or application.
+
+**Example:** Number of Request per Seconds that a Web Server is handling falls under this category
+
+##### `B. Average Metrics:`
+
+These metrics represents the average value across all the instances or pods in a deployment.
+
+Average metrics help in the understanding the overall resources utilization of set of replicas, offering a collective view rather than focusing on individual instances.
+
+**Example:** Average CPU usage across all the Pods running a particular application.
+
+
+#####`C. Utilization Metrics:`
+These metrics show the percentage of requested resources that are being utilized.
+
+Utilization metrics are particularly useful in scenarios where the concern is not just the absolute quantity of resource being used, but how much of the allocated resources are actually being utilized.
+
+**Example:** Memory Utilization represented as a percentage of total allocated memory.
+
+#### Application of Metrics in Context to K8s HPA
+
+- K8s actually uses the metrics as the key component whether to scale or de-scale resources.
+- The decision making process involves if certain metrics has crossed certain predefined threshold.
+
+**Example:** CPU Utilization of the Pods exceed certain percentage , it may trigger HPA to increase the number of Pod replica Counts (Scale Out) to distribute the load more evenly, also if the Utilization drops below the threshold it can lessen the number of pod replicas (Scale Down).
+
+#### Conclusion:
+
+Understanding the types of metrics, especially the nuances of how resources are actually quantified in K8s(like using milli units for CPU Resources) is foundational for setting up effective autoscaling.
+
+This becomes specifically essential when dealing with some advanced autoscaling mechanism like Event Driven Scaling with the Kubernetes Even Driven Autoscaling (KEDA) where metrics play a central role in triggering scaling events.
